@@ -1,0 +1,185 @@
+﻿// Prisma schema for SwipeBite
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SwipeMode {
+  ALL_MUST_AGREE
+  THRESHOLD
+}
+
+enum TravelMode {
+  WALK
+  DRIVE
+  ANY
+}
+
+enum Provider {
+  GOOGLE
+  YELP
+}
+
+enum DeckGroup {
+  NEAR
+  FAR
+}
+
+enum SwipeDecision {
+  YES
+  NO
+}
+
+enum MatchStatus {
+  NONE
+  PARTIAL
+  MATCH
+}
+
+model User {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  displayName String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sessions    SessionMember[]
+  swipes      Swipe[]
+  refreshTokens RefreshToken[]
+  magicLinks  MagicLinkToken[]
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model MagicLinkToken {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  consumedAt DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Session {
+  id                 String     @id @default(uuid())
+  code               String     @unique
+  hostUserId         String
+  name               String
+  isActive           Boolean    @default(true)
+  swipeMode          SwipeMode  @default(ALL_MUST_AGREE)
+  agreeThreshold     Int?
+  defaultTravelMode  TravelMode @default(ANY)
+  defaultMaxMinutes  Int?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+  endedAt            DateTime?
+
+  hostUser User @relation(fields: [hostUserId], references: [id])
+  members  SessionMember[]
+  deckItems SessionDeckItem[]
+  swipes   Swipe[]
+  matches  MatchSnapshot[]
+}
+
+model SessionMember {
+  id        String   @id @default(uuid())
+  sessionId String
+  userId    String
+  joinedAt  DateTime @default(now())
+  leftAt    DateTime?
+  isReady   Boolean  @default(false)
+
+  session Session @relation(fields: [sessionId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([sessionId, userId])
+}
+
+model Place {
+  id              String   @id @default(uuid())
+  provider        Provider
+  providerPlaceId String
+  name            String
+  address         String?
+  lat             Float?
+  lng             Float?
+  phone           String?
+  rating          Float?
+  priceLevel      Int?
+  websiteUrl      String?
+  menuUrl         String?
+  hoursJson       Json?
+  photosJson      Json?
+  categoriesJson  Json?
+  updatedAt       DateTime @updatedAt
+  createdAt       DateTime @default(now())
+
+  deckItems SessionDeckItem[]
+  swipes   Swipe[]
+  matches  MatchSnapshot[]
+
+  @@index([provider, providerPlaceId])
+  @@unique([provider, providerPlaceId])
+}
+
+model SessionDeckItem {
+  id        String   @id @default(uuid())
+  sessionId String
+  placeId   String
+  deckGroup DeckGroup
+  rank      Int
+  createdAt DateTime @default(now())
+
+  session Session @relation(fields: [sessionId], references: [id])
+  place   Place   @relation(fields: [placeId], references: [id])
+
+  @@unique([sessionId, placeId])
+  @@index([sessionId, deckGroup, rank])
+}
+
+model Swipe {
+  id        String        @id @default(uuid())
+  sessionId String
+  userId    String
+  placeId   String
+  decision  SwipeDecision
+  createdAt DateTime      @default(now())
+
+  session Session @relation(fields: [sessionId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+  place   Place   @relation(fields: [placeId], references: [id])
+
+  @@unique([sessionId, userId, placeId])
+  @@index([sessionId, placeId])
+}
+
+model MatchSnapshot {
+  id        String      @id @default(uuid())
+  sessionId String
+  placeId   String
+  yesCount  Int
+  noCount   Int
+  status    MatchStatus
+  updatedAt DateTime @updatedAt
+
+  session Session @relation(fields: [sessionId], references: [id])
+  place   Place   @relation(fields: [placeId], references: [id])
+
+  @@unique([sessionId, placeId])
+}

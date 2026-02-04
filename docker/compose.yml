@@ -1,0 +1,15 @@
+﻿services:
+  postgres:
+    image: postgres:16
+    container_name: swipebite-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: swipebite
+      POSTGRES_PASSWORD: swipebite
+      POSTGRES_DB: swipebite
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

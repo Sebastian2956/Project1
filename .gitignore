@@ -1,0 +1,25 @@
+﻿# Node
+node_modules/
+server/node_modules/
+mobile/node_modules/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Env
+.env
+
+# Expo
+mobile/.expo/
+
+# Prisma
+server/prisma/dev.db
+
+# Build
+server/dist/
+
+# OS
+.DS_Store
+Thumbs.db
